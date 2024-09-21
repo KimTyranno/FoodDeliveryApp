@@ -1,4 +1,7 @@
 {
-  "name": "FoodDeliveryApp",
-  "displayName": "FoodDeliveryApp"
+  "name": "FoodDeliveryApp", // 얘를 바꾸려면 변경해야할게 많으니까 바꿀꺼면 처음에 바꿀것
+  "displayName": "FoodDeliveryApp" 
+  // 앱 이름변경 하는건데, 이거만 바꾼다고해서 되는건 아닌듯
+  // android\app\src\main\res\values\strings.xml
+  // ios\FoodDeliveryApp\Info.plist의 CFBundleDisplayName의 <string>
 }
