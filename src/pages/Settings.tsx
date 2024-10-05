@@ -54,6 +54,7 @@ function Settings() {
         <Text style={styles.moneyText}>
           {name}님의 수익금{' '}
           <Text style={{ fontWeight: 'bold' }}>
+            {/* 숫자 3자리마다 콤마찍는 정규식 */}
             {money.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
           </Text>
           원
