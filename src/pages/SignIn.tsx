@@ -1,11 +1,19 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack'
-import { useCallback, useRef, useState } from 'react'
+import axios, { AxiosError } from 'axios'
+import React, { useCallback, useRef, useState } from 'react'
 import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
+import Config from 'react-native-config'
+import EncryptedStorage from 'react-native-encrypted-storage'
 import { RootStackParamList } from '../../App'
+import DismissKeyboardView from '../components/DismissKeyboardView'
+import userSlice from '../slices/user'
+import { useAppDispatch } from '../store'
 
 type SignInScreenProps = NativeStackScreenProps<RootStackParamList, 'SignIn'>
 
 const SignIn = ({ navigation }: SignInScreenProps) => {
+  const dispatch = useAppDispatch()
+  const [loading, setLoading] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const emailRef = useRef<TextInput | null>(null)
@@ -19,17 +27,48 @@ const SignIn = ({ navigation }: SignInScreenProps) => {
   }
 
   const canLogin = email && password
-  const onSubmit = useCallback(() => {
-    if (!email || !email.trim()) return Alert.alert('알림', '이메일을 입력해주세요.')
-    if (!password || !password.trim()) return Alert.alert('알림', '비밀번호를 입력해주세요.')
-    Alert.alert('알림', '로그인 성공')
-  }, [email, password])
+  const onSubmit = useCallback(async () => {
+    if (loading) {
+      return
+    }
+    if (!email || !email.trim()) {
+      return Alert.alert('알림', '이메일을 입력해주세요.')
+    }
+    if (!password || !password.trim()) {
+      return Alert.alert('알림', '비밀번호를 입력해주세요.')
+    }
+    try {
+      setLoading(true)
+      const response = await axios.post(`${Config.API_URL}/login`, {
+        email,
+        password,
+      })
+      console.log(response.data)
+      Alert.alert('알림', '로그인 되었습니다.')
+      dispatch(
+        userSlice.actions.setUser({
+          name: response.data.data.name,
+          email: response.data.data.email,
+          accessToken: response.data.data.accessToken,
+        }),
+      )
+      // 토큰을 암호화 시켜서 저장
+      await EncryptedStorage.setItem('refreshToken', response.data.data.refreshToken)
+    } catch (error) {
+      if (error instanceof AxiosError) {
+        console.log(error.response)
+        Alert.alert('알림', error.response?.data.message)
+      }
+    } finally {
+      setLoading(false)
+    }
+  }, [loading, dispatch, email, password])
 
   const gotoSignUp = () => {
     navigation.navigate('SignUp')
   }
   return (
-    <View>
+    <DismissKeyboardView>
       <View style={styles.inputWrapper}>
         <Text style={styles.label}>이메일</Text>
         <TextInput
@@ -37,6 +76,7 @@ const SignIn = ({ navigation }: SignInScreenProps) => {
           placeholder="이메일을 입력해주세요"
           onChangeText={onChangeEmail}
           value={email}
+          placeholderTextColor="#666"
           // 키보드에 @ 표시나오게함
           keyboardType="email-address"
           // 입력값을 자동완성 시키려고 할때 사용
@@ -44,6 +84,7 @@ const SignIn = ({ navigation }: SignInScreenProps) => {
           // 인증문자 같은거 뜨게 하는것도 가능하다 (입력값이 정해져있음)
           autoComplete="email"
           textContentType="emailAddress"
+          returnKeyType="next"
           // 엔터쳤을때 다음항목으로 넘어가는거 (returnKeyType="next"가 안먹힐때 쓰면됨)
           onSubmitEditing={() => {
             passwordRef.current?.focus()
@@ -59,13 +100,16 @@ const SignIn = ({ navigation }: SignInScreenProps) => {
         <Text style={styles.label}>비밀번호</Text>
         <TextInput
           style={styles.textInput}
-          placeholder="비밀번호를 입력해주세요"
+          placeholder="비밀번호를 입력해주세요(영문,숫자,특수문자)"
+          placeholderTextColor="#666"
           onChangeText={onChangePassword}
           value={password}
           secureTextEntry
           importantForAutofill="yes"
           autoComplete="password"
           textContentType="password"
+          returnKeyType="send"
+          clearButtonMode="while-editing"
           ref={passwordRef}
           onSubmitEditing={onSubmit}
         />
@@ -85,21 +129,25 @@ const SignIn = ({ navigation }: SignInScreenProps) => {
           <Text>회원가입</Text>
         </Pressable>
       </View>
-      <View></View>
-    </View>
+    </DismissKeyboardView>
   )
 }
 
 const styles = StyleSheet.create({
+  textInput: {
+    padding: 5,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
   inputWrapper: {
     padding: 20,
   },
-  // hairlineWidth는 가장 얇은데 눈에는 보이는 단위로 알아서해줌
-  textInput: { padding: 5, borderBottomWidth: StyleSheet.hairlineWidth },
   label: {
     fontWeight: 'bold',
     fontSize: 16,
     marginBottom: 20,
+  },
+  buttonZone: {
+    alignItems: 'center',
   },
   loginButton: {
     backgroundColor: 'gray',
@@ -111,9 +159,9 @@ const styles = StyleSheet.create({
   loginButtonActive: {
     backgroundColor: 'blue',
   },
-  loginButtonText: { color: 'white', fontSize: 16 },
-  buttonZone: {
-    alignItems: 'center',
+  loginButtonText: {
+    color: 'white',
+    fontSize: 16,
   },
 })
 

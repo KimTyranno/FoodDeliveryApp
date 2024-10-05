@@ -2,12 +2,14 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import { NavigationContainer } from '@react-navigation/native'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import * as React from 'react'
-import { useState } from 'react'
+import { Provider, useSelector } from 'react-redux'
 import Delivery from './src/pages/Delivery'
 import Orders from './src/pages/Orders'
 import Settings from './src/pages/Settings'
 import SignIn from './src/pages/SignIn'
 import SignUp from './src/pages/SignUp'
+import store from './src/store'
+import { RootState } from './src/store/reducer'
 
 export type LoggedInParamList = {
   Orders: undefined
@@ -24,8 +26,8 @@ export type RootStackParamList = {
 const Tab = createBottomTabNavigator()
 const Stack = createNativeStackNavigator<RootStackParamList>()
 
-function App() {
-  const [isLoggedIn, setLoggedIn] = useState(false)
+export function AppInner() {
+  const isLoggedIn = useSelector((state: RootState) => !!state.user.email)
   return (
     <NavigationContainer>
       {isLoggedIn ? (
@@ -41,6 +43,13 @@ function App() {
         </Stack.Navigator>
       )}
     </NavigationContainer>
+  )
+}
+function App() {
+  return (
+    <Provider store={store}>
+      <AppInner />
+    </Provider>
   )
 }
 
