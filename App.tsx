@@ -2,7 +2,9 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import { NavigationContainer } from '@react-navigation/native'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import * as React from 'react'
+import { useEffect } from 'react'
 import { Provider, useSelector } from 'react-redux'
+import useSocket from './src/hooks/useSocket'
 import Delivery from './src/pages/Delivery'
 import Orders from './src/pages/Orders'
 import Settings from './src/pages/Settings'
@@ -28,6 +30,34 @@ const Stack = createNativeStackNavigator<RootStackParamList>()
 
 export function AppInner() {
   const isLoggedIn = useSelector((state: RootState) => !!state.user.email)
+  const [socket, disconnect] = useSocket()
+
+  useEffect(() => {
+    const callback = (data: any) => {
+      console.log(data)
+    }
+
+    if (socket && isLoggedIn) {
+      // emit은 서버에 데이터를 보낼때
+      socket.emit('acceptOrder', 'hello')
+      // on은 서버에서 데이터를 받을때
+      socket.on('order', callback)
+    }
+
+    return () => {
+      if (socket) {
+        socket.off('order', callback)
+      }
+    }
+  }, [isLoggedIn, socket])
+
+  useEffect(() => {
+    if (!isLoggedIn) {
+      console.log('!isLoggedIn', !isLoggedIn)
+      disconnect()
+    }
+  }, [isLoggedIn, disconnect])
+
   return (
     <NavigationContainer>
       {isLoggedIn ? (
